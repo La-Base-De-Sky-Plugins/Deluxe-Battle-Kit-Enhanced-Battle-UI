@@ -96,7 +96,7 @@ class Battle::Scene
   def pbUpdateSpeakerWindows(speaker = "", windowskin = "")
     if !speaker.is_a?(String)
       speaker = @speaker if speaker.nil?
-      windowskin = 0 #speaker.gender if nil_or_empty?(windowskin)
+      windowskin = speaker.gender if nil_or_empty?(windowskin)
       speaker = speaker.name
     end
     if windowskin.is_a?(Integer)
@@ -380,7 +380,6 @@ end
 # Animation used to slide a speaker on screen.
 #-------------------------------------------------------------------------------
 class Battle::Scene::Animation::SlideSpriteAppear < Battle::Scene::Animation
-
   def initialize(sprites, viewport, battle)
     @battle = battle
     super(sprites, viewport)
@@ -421,7 +420,7 @@ class Battle::Scene::Animation::SlideSpriteAppear < Battle::Scene::Animation
       trainerX, trainerY = Battle::Scene.pbTrainerPosition(1)
       trainerX += 64 + (Graphics.width / 4)
       slideSprite.setXY(delay, trainerX, trainerY)
-      slideSprite.setZ(delay, @sprites["pokemon_1"].z - 1)
+      slideSprite.setZ(delay, @sprites["pokemon_1"].z + 1)
       slideSprite.moveDelta(delay, 8, -Graphics.width / 4, 0)
     end
   end

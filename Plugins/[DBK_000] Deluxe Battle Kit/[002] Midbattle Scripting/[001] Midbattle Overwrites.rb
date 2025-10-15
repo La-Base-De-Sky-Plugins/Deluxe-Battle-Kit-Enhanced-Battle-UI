@@ -461,15 +461,6 @@ class Battle
     allBattlers.each do |b|
       pbDeluxeTriggers(b, nil, "RoundEnd", 1 + @turnCount)
     end
-    @battlers.each do |b|
-      next unless b&.damageThreshold
-      hpThreshold = (b.totalhp * (b.damageThreshold / 100.0)).round
-      hpThreshold = 1 if hpThreshold < 1
-      next if b.hp > hpThreshold
-      next if b.effects[PBEffects::Endure] && hpThreshold == 1
-      b.damageThreshold = nil
-      pbDeluxeTriggers(b.index, nil, "BattlerReachedHPCap", b.species, *b.pokemon.types)
-    end
     return ret
   end
 end
@@ -543,12 +534,26 @@ class Battle::Battler
     if targets.empty?
       @battle.pbDeluxeTriggers(user, user.index, *triggers)
     else
+      targ_indecies = []
+      targ_triggers = []
       targets.each do |b|
         @battle.pbDeluxeTriggers(user, b.index, *triggers)
+        next if b.damageState.unaffected || b.damageState.substitute
+        next if b.damageState.calcDamage == 0
+        next if !b.damageThreshold
+        hpThreshold = (b.totalhp * (b.damageThreshold / 100.0)).round
+        hpThreshold = 1 if hpThreshold < 1
+        next if b.hp > hpThreshold
+        next if b.effects[PBEffects::Endure] && hpThreshold == 1
+        targ_indecies.push(b.index)
+        targ_triggers.push("BattlerReachedHPCap", b.species, *b.pokemon.types)
+        b.damageThreshold = nil
+      end
+      targ_indecies.each do |i|
+        @battle.pbDeluxeTriggers(i, user.index, *targ_triggers)
       end
     end
   end
-
   
   #-----------------------------------------------------------------------------
   # Midbattle triggers upon move failure.
@@ -703,12 +708,14 @@ class Battle::Battler
   alias dx_pbBeginTurn pbBeginTurn
   def pbBeginTurn(_choice)
     dx_pbBeginTurn(_choice)
+	  return if !@pokemon
     @battle.pbDeluxeTriggers(self, nil, "TurnStart", @turnCount, @species, *@pokemon.types)
   end
   
   alias dx_pbEndTurn pbEndTurn
   def pbEndTurn(_choice)
     dx_pbEndTurn(_choice)
+	  return if !@pokemon
     @battle.pbDeluxeTriggers(self, nil, "TurnEnd", @turnCount, @species, *@pokemon.types)
   end
 end
@@ -752,6 +759,7 @@ class Battle::Move
     dx_pbEffectivenessMessage(user, target, numTargets)
     return if target.damageState.substitute || target.fainted?
     @battler_triggers[:user].push("UserDealtDamage", @id, @type, user.species)
+    @battler_triggers[:targ].push("TargetTookDamage", @id, @type, target.species)
     return if self.is_a?(Battle::Move::FixedDamageMove)
     if Effectiveness.super_effective?(target.damageState.typeMod)
       @battler_triggers[:user].push("UserMoveEffective", @id, @type, user.species)
@@ -770,20 +778,7 @@ class Battle::Move
   #-----------------------------------------------------------------------------
   def pbFinalizeMoveTriggers(user, target)
     if !user.fainted?
-      # === NUEVO: 75% o menos (User) ===
-      if user.hp <= (user.totalhp * 3 / 4)
-        if @battle.pbParty(user.index).length > @battle.pbSideSize(user.index)
-          if @battle.pbAbleNonActiveCount(user.index) == 0
-            @battler_triggers[:user].push("LastUserHP75", user.species, *user.pokemon.types)
-          else
-            @battler_triggers[:user].push("UserHP75", user.species, *user.pokemon.types)
-          end
-        else
-          @battler_triggers[:user].push("UserHP75", user.species, *user.pokemon.types)
-          @battler_triggers[:user].push("LastUserHP75", user.species, *user.pokemon.types)
-        end
-      # === EXISTENTE: 50% y 25% (solo si NO está en 75%) ===
-      elsif user.hp <= user.totalhp / 2
+      if user.hp <= user.totalhp / 2
         lowHP = user.hp <= user.totalhp / 4
         if @battle.pbParty(user.index).length > @battle.pbSideSize(user.index)
           if @battle.pbAbleNonActiveCount(user.index) == 0
@@ -803,8 +798,8 @@ class Battle::Move
         end
       end
     end
-
     if !target.fainted? && user.opposes?(target.index)
+      triggers = []
       # === NUEVO: 75% o menos (Target) ===
       if target.hp <= (target.totalhp * 3 / 4)
         if @battle.pbParty(target.index).length > @battle.pbSideSize(target.index)
@@ -838,7 +833,6 @@ class Battle::Move
         end
       end
     end
-
     @battler_triggers.each do |battler, triggers|
       next if triggers.empty?
       case battler
