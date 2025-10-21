@@ -286,7 +286,6 @@ class Battle::Scene
     target = (@battle.pbOpposingBattlerCount == 1) ? battler.pbDirectOpposing(true) : nil
     #---------------------------------------------------------------------------
     # Bonus text and modifiers for ability changes to move.
-    #---------------------------------------------------------------------------
     if battler.abilityActive?
       5.times do |i|
         break if bonus
@@ -332,7 +331,6 @@ class Battle::Scene
           next if battler.hasActiveAbility?(:ANALYTIC)
           next if !target && battler.hasActiveAbility?(:RIVALRY)
           oldPower = power
-          
           Battle::AbilityEffects.triggerDamageCalcFromUser(
             battler.ability, battler, (target || battler), move, powMults, baseDmg, type
           )
@@ -348,7 +346,6 @@ class Battle::Scene
     end
     #---------------------------------------------------------------------------
     # Bonus text and modifiers for held item changes to move.
-    #---------------------------------------------------------------------------
     if battler.item && battler.itemActive?
       if ![0, 100].include?(acc)  # Held items that alter accuracy.
         oldAcc = acc
@@ -382,13 +379,11 @@ class Battle::Scene
     end
     #---------------------------------------------------------------------------
     # Special note for Mega Launcher + Heal Pulse.
-    #---------------------------------------------------------------------------
     if battler.hasActiveAbility?(:MEGALAUNCHER) && move.healingMove? && move.pulseMove?
       bonus = [_INTL("Curación aumentada por la habilidad {1}.", battler.abilityName), BASE_RAISED, SHADOW_RAISED]
     end
     #---------------------------------------------------------------------------
     # Bonus text for moves that utilize special battle mechanics.
-    #---------------------------------------------------------------------------
     if showTera && move.damagingMove?
 	    bonus = [_INTL("Poder aumentado por la Teracristalización."), BASE_RAISED, SHADOW_RAISED]
     elsif defined?(move.zMove?) && move.zMove? && move.has_zpower?

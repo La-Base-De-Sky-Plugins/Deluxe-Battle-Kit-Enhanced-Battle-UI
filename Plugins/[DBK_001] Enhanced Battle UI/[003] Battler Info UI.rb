@@ -389,6 +389,13 @@ class Battle::Scene
       display_effects.push([_INTL("Poder Legendario"), "--", desc])
     end
     #---------------------------------------------------------------------------
+    # Raid battle shields.
+    if battler.hasRaidShield?
+      desc = _INTL("El Pokémon es inmune a los movimientos de estado y recibe menos daño.")
+      tick = sprintf("%d/%d", battler.shieldHP, @battle.raidRules[:shield_hp])
+      display_effects.push([_INTL("Escudo Raid"), tick, desc])
+    end
+    #---------------------------------------------------------------------------
     # Special states.
     if battler.dynamax?
       if battler.effects[PBEffects::Dynamax] > 0 && !battler.isRaidBoss?
@@ -404,11 +411,7 @@ class Battle::Scene
       display_effects.push([_INTL("Teracristalización"), "", desc])
     end
 
-    if battler.hasActiveAbility?(:ACOMETIDA) && battler.turnCount == 0
-      name = _INTL("Acometida")
-      desc = _INTL("En el 1º turno que salga a combatir tendrá 20% más de ataque y 50% más de velocidad.")
-      display_effects.push([name, "1", desc])
-    elsif (battler.hasActiveAbility?(:PROTOSYNTHESIS) || battler.hasActiveAbility?(:QUARKDRIVE)) && battler.effects[PBEffects::ParadoxStat]
+    if (battler.hasActiveAbility?(:PROTOSYNTHESIS) || battler.hasActiveAbility?(:QUARKDRIVE)) && battler.effects[PBEffects::ParadoxStat]
       name = GameData::Ability.get(battler.ability).name
       percent = battler.effects[PBEffects::ParadoxStat] == :SPEED ? "50%" : "30%"
       stat_name = GameData::Stat.get(battler.effects[PBEffects::ParadoxStat]).name
@@ -417,35 +420,55 @@ class Battle::Scene
     end
     #---------------------------------------------------------------------------
     # Weather
-    weather = battler.effectiveWeather
-    if weather != :None
-      if weather == :Hail
-        if defined?(Settings::HAIL_WEATHER_TYPE) && Settings::HAIL_WEATHER_TYPE > 0
-          case Settings::HAIL_WEATHER_TYPE
-          when 1
-            name = _INTL("Nevada")
-            desc = _INTL("Sube la defensa de los Pokémon tipo Hielo. Ventisca siempre acierta.")
-          when 2
-            name = _INTL("Granizo y Nieve")
-            desc = _INTL("Combina los efectos de Granizo y Nieve.")
-          end
+    weather = (battler.pbOwnedByPlayer?) ? battler.effectiveWeather : @battle.field.weather
+    weather_data = GameData::BattleWeather.try_get(weather)
+
+    if !weather_data.nil? && weather_data.id != :None
+      id = weather_data.id
+      name = weather_data.name
+      if defined?(Settings::HAIL_WEATHER_TYPE) && id == :Hail
+        case Settings::HAIL_WEATHER_TYPE
+        when 1 then id = :Snow;      name = _INTL("Nevada")
+        when 2 then id = :Hailstorm; name = _INTL("Granizo y Nieve")
+        end
+      end
+      case id
+      when :Sun         then desc = _INTL("Potencia movimientos Fuego y debilita movimientos Agua.")
+      when :HarshSun    then desc = _INTL("Potencia movimientos Fuego y anula movimientos Agua.")
+      when :Rain        then desc = _INTL("Potencia movimientos Agua y debilita movimientos Fuego.")
+      when :HeavyRain   then desc = _INTL("Potencia movimientos Agua y anula movimientos Fuego.")
+      when :StrongWinds then desc = _INTL("Los tipos Volador no reciben daño súper efectivo.")
+      when :Hailstorm   then desc = _INTL("Los efectos combinados de Granizo y Nevada.")
+      when :Sandstorm
+        if battler.pbOwnedByPlayer? && battler.pbHasType?(:ROCK)
+          desc = _INTL("Aumenta Def. Esp. del Pokémon en un 50%.")
+        elsif battler.pbOwnedByPlayer? && battler.takesSandstormDamage?
+          desc = _INTL("El Pokémon pierde {1} PS cada turno.", (battler.real_totalhp / 16).floor)
         else
-          name = GameData::BattleWeather.get(weather).name
-          desc = _INTL("Los Pokémon que no sean de tipo Hielo reciben daño cada turno. Ventisca siempre acierta.")
+          desc = _INTL("Pokémon puede perder PS cada turno. Aumenta Def. Esp. de los tipos Roca.")
+        end
+      when :Hail
+        if battler.pbOwnedByPlayer? && battler.takesHailDamage?
+          desc = _INTL("El Pokémon pierde {1} PS cada turno. Ventisca siempre acierta.", (battler.real_totalhp / 16).floor)
+        else
+          desc = _INTL("Los Pokémon podrían perder PS cada turno. Ventisca siempre acierta.")
+        end
+      when :Snow
+        if battler.pbOwnedByPlayer? && battler.pbHasType?(:ICE)
+          desc = _INTL("Sube la defensa del Pokémon en un 50%. Ventisca siempre acierta.")
+        else
+          desc = _INTL("Sube la defensa de los Pokémon tipo Hielo. Ventisca siempre acierta.")
+        end
+      when :ShadowSky
+        if battler.shadowPokemon?
+          desc = _INTL("Potencia movimientos Oscuros en un 50%.")
+        elsif battler.pbOwnedByPlayer?
+          desc = _INTL("El Pokémon pierde {1} PS cada turno.", (battler.real_totalhp / 16).floor)
+        else
+          desc = _INTL("Pokémon no oscuros pueden perder PS cada turno.")
         end
       else
-        name = GameData::BattleWeather.get(weather).name
-        case weather
-        when :Sun         then desc = _INTL("Potencia movimientos Fuego y debilita movimientos Agua.")
-        when :HarshSun    then desc = _INTL("Potencia movimientos Fuego y anula movimientos Agua.")
-        when :Rain        then desc = _INTL("Potencia movimientos Agua y debilita movimientos Fuego.")
-        when :HeavyRain   then desc = _INTL("Potencia movimientos Agua y anula movimientos Fuego.")
-        when :Snow        then desc = _INTL("Aumenta Def. de tipos Hielo. Ventisca siempre acierta.")
-        when :Sandstorm   then desc = _INTL("Aumenta Def. Esp. de tipos Roca. Daña excepto Roca/Tierra/Acero.")
-        when :StrongWinds then desc = _INTL("Los tipos Volador no reciben daño súper efectivo.")
-        when :ShadowSky   then desc = _INTL("Potencia movimientos Oscuros. Pokémon no oscuros reciben daño cada turno.")
-        else                   desc = _INTL("Clima desconocido.")
-        end
+        desc = _INTL("Clima desconocido.")
       end
       tick = (weather == @battle.field.weather) ? @battle.field.weatherDuration : 0
       tick = (tick > 0) ? sprintf("%d/%d", tick, 5) : "--"
@@ -458,30 +481,34 @@ class Battle::Scene
       tick = @battle.field.terrainDuration
       tick = (tick > 0) ? sprintf("%d/%d", tick, 5) : "--"
       case @battle.field.terrain
-      when :Electric then desc = _INTL("Los Pokémon que toquen el campo no pueden dormirse. Potencia los ataques Eléctricos.")
-      when :Grassy   then desc = _INTL("Los Pokémon que toquen el campo recuperan PS cada turno. Potencia los ataques de Planta.")
-      when :Psychic  then desc = _INTL("Los ataques de prioridad fallan en los Pokémon que toquen el campo. Potencia los ataques Psíquicos.")
-      when :Misty    then desc = _INTL("No se pueden cambiar estados a los Pokémon que toquen el campo. Debilita los ataques de Dragon")
-      else                desc = _INTL("Terreno desconocido.")
+      when :Electric 
+        if battler.pbOwnedByPlayer?
+          desc = _INTL("El Pokémon no puede dormirse. Potencia los ataques Eléctricos un 30%.")
+        else
+          desc = _INTL("Los Pokémon que toquen el campo no pueden dormirse. Potencia los ataques Eléctricos.")
+        end
+      when :Grassy
+        if battler.pbOwnedByPlayer?
+          desc = _INTL("El Pokémon recupera {1} PS cada turno. Potencia los ataques de Planta un 30%.", (battler.real_totalhp / 16).floor)
+        else
+          desc = _INTL("Los Pokémon que toquen el campo recuperan PS cada turno. Potencia los ataques de Planta.")
+        end
+      when :Psychic
+        if battler.pbOwnedByPlayer?
+          desc = _INTL("Los ataques de prioridad fallan en el Pokémon. Potencia los ataques Psíquicos un 30%.")
+        else
+          desc = _INTL("Los ataques de prioridad fallan en los Pokémon que toquen el campo. Potencia los ataques Psíquicos.")
+        end
+      when :Misty
+        if battler.pbOwnedByPlayer?
+          desc = _INTL("El Pokémon no puede recibir cambios de estado. Debilita los ataques de Dragón un 50%.")
+        else
+          desc = _INTL("No se pueden cambiar estados a los Pokémon que toquen el campo. Debilita los ataques de Dragon.")
+        end
+      else
+        desc = _INTL("Terreno desconocido.")
       end
       display_effects.push([name, tick, desc])
-    end
-    #---------------------------------------------------------------------------
-    # Battler effects that affect other Pokemon.
-    if @battle.allBattlers.any? { |b| b.effects[PBEffects::Imprison] }
-      name = GameData::Move.get(:IMPRISON).name
-      desc = _INTL("Otros Pokémon no pueden usar movimientos conocidos por {1}.", name)
-      display_effects.push([name, "--", desc])
-    end
-    if @battle.allBattlers.any? { |b| b.effects[PBEffects::Uproar] > 0 }
-      name = GameData::Move.get(:UPROAR).name
-      desc = _INTL("Los Pokémon no pueden dormirse durante un alboroto.")
-      display_effects.push([name, "--", desc])
-    end
-    if @battle.allBattlers.any? { |b| b.effects[PBEffects::JawLock] == battler.index }
-      name = _INTL("Nadie puede escapar")
-      desc = _INTL("Los Pokémon no pueden escapar o ser cambiados.")
-      display_effects.push([name, "--", desc])
     end
     #---------------------------------------------------------------------------
     # All other effects.
@@ -945,6 +972,35 @@ class Battle::Scene
           tick = "--" if type == :counter && value < 0
           display_effects.push([name, tick, desc])
         end
+      end
+    end
+    #---------------------------------------------------------------------------
+    # Checks all other battlers for Jaw Lock trapping.
+    @battle.allBattlers.each do |b|
+      next if b.effects[PBEffects::JawLock] != battler.index
+      name = GameData::Move.get(:JAWLOCK).name
+      desc = _INTL("Los Pokémon no pueden escapar o ser cambiados.")
+      display_effects.push([name, "--", desc])
+    end
+    #---------------------------------------------------------------------------
+    # Checks all opposing battlers for Imprison.
+    @battle.allOtherSideBattlers(battler.index).each do |b|
+	  next if !b.effects[PBEffects::Imprison]
+      name = GameData::Move.get(:IMPRISON).name
+      desc = _INTL("Otros Pokémon no pueden usar movimientos conocidos por {1}.", b.pbThis(true))
+      display_effects.push([name, "--", desc])
+      break
+    end
+    #---------------------------------------------------------------------------
+    # Checks all other battlers for Uproar if the user doesn't have Soundproof.
+    if !battler.hasActiveAbility?(:SOUNDPROOF)
+      @battle.allBattlers.each do |b|
+        next if b.effects[PBEffects::Uproar] == 0
+        name = GameData::Move.get(:UPROAR).name
+        tick = sprintf("%d/%d", b.effects[PBEffects::Uproar], 3)
+        desc = _INTL("Los Pokémon no pueden dormirse durante un alboroto.")
+        display_effects.push([name, tick, desc])
+        break
       end
     end
     display_effects.uniq!
