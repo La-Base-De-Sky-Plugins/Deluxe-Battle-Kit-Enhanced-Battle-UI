@@ -204,6 +204,39 @@ class Battle::Scene
     return ret
   end
 
+  def update_zygarde_move(battler, idxBattler, specialAction, cw)
+    # After toggling, change Zygarde's move based on the NEW registration state
+    if battler.isSpecies?(:ZYGARDE) && [2, 3].include?(battler.form) && specialAction == :mega
+      newMode = (@battle.pbBattleMechanicIsRegistered?(idxBattler, specialAction)) ? 2 : 1
+      battler.moves.each_with_index do |move, i|
+        new_move_id = nil
+        if newMode == 2 && move.id == :COREENFORCER
+          new_move_id = :NIHILLIGHT
+        elsif newMode == 1 && move.id == :NIHILLIGHT
+          new_move_id = :COREENFORCER
+        end
+        
+        if new_move_id
+          # Store current PP values
+          current_pp = move.pp
+          
+          # Create a new Pokemon::Move with the new ID
+          pokemon_move = Pokemon::Move.new(new_move_id)
+          pokemon_move.pp = current_pp
+          # pokemon_move.total_pp = total_pp
+          
+          # Create a new Battle::Move from the Pokemon::Move
+          new_battle_move = Battle::Move.from_pokemon_move(@battle, pokemon_move)
+          
+          # Replace the move in the battler's moves array
+          battler.moves[i] = new_battle_move
+        end
+      end
+      # Immediately refresh the UI to show the new move name
+      cw.refresh
+    end
+  end
+
   #-----------------------------------------------------------------------------
   # Edited for fight menu functionality.
   #-----------------------------------------------------------------------------
@@ -261,6 +294,7 @@ class Battle::Scene
         if specialAction
           needFullRefresh = pbFightMenu_Action(battler, specialAction, cw)
           break if yield specialAction
+          update_zygarde_move(battler, idxBattler, specialAction, cw)
           needRefresh = true
         end
       elsif Input.trigger?(Input::SPECIAL)
