@@ -770,15 +770,6 @@ EventHandlers.add(:on_wild_pokemon_created, :edit_wild_pokemon,
 EventHandlers.add(:on_start_battle, :change_player_and_party,
   proc {
     battleRules = $game_temp.battle_rules
-    if $game_switches[MODO_VGC] && !$game_switches[COMBATE_MEWTWO] && battleRules["size"] != "2v1"
-      if $player.able_pokemon_count >= 2
-        $game_temp.add_battle_rule("double", true)  # 2v2 normal
-      else
-        $game_temp.add_battle_rule("1v2", true)    # 1v2 cuando solo tienes 1
-      end
-    end
-    $game_temp.add_battle_rule("inverseBattle", true) if $game_switches[MODO_INVERSO]
-    
     old_player_data = nil
     old_player_bag = nil
     old_player_party = nil
