@@ -147,7 +147,7 @@ MidbattleHandlers.add(:midbattle_scripts, :demo_collapsing_cave,
       scene.pbRecall(idxBattler)
       battle.pbDisplayPaused(_INTL("¡Te viste obligado/a a huir de la batalla!"))      
       pbSEPlay("Battle flee")
-      battle.decision = 3
+      battle.decision = Battle::Outcome::FLEE
     #---------------------------------------------------------------------------
     # Opponent's Pokemon stands its ground when its HP is low.
     when "LastTargetHPLow_foe"

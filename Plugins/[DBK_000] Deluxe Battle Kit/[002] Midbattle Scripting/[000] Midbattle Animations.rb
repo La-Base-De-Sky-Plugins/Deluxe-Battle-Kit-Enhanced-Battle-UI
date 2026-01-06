@@ -204,7 +204,7 @@ class Battle::Scene
   #-----------------------------------------------------------------------------
   def pbForceEndSpeech
     return if !pbInCinematicSpeech?
-    pbHideSpeaker(@battle.decision > 0)
+    pbHideSpeaker(@battle.decided?)
     pbToggleBlackBars
     pbToggleDataboxes(true)
   end

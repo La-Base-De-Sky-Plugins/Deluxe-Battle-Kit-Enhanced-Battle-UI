@@ -410,7 +410,7 @@ class Battle
     end
     2.times { |side| pbActionCommands(side) }
     pbCommandPhaseLoop(true)
-    if @decision != 0
+    if decided?
       @command_phase = false
       return
     end
@@ -438,9 +438,9 @@ class Battle
     pbAttackPhaseCall
     pbAttackPhaseSpecialActions2
     pbAttackPhaseSwitch
-    return if @decision > 0
+    return if decided?
     pbAttackPhaseItems
-    return if @decision > 0
+    return if decided?
     pbAttackPhaseSpecialActions3
     pbAttackPhaseMoves
   end
@@ -459,7 +459,7 @@ class Battle
       pbPursuitSpecialActions(b, owner)
       @choices[b.index][3] = idxSwitcher
       b.pbProcessTurn(@choices[b.index], false)
-      break if @decision > 0 || @battlers[idxSwitcher].fainted?
+      break if decided? || @battlers[idxSwitcher].fainted?
     end
     @switching = false
   end

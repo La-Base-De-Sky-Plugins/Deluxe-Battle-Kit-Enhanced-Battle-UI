@@ -452,7 +452,7 @@ MidbattleHandlers.add(:midbattle_triggers, "playAnim",
 #-------------------------------------------------------------------------------
 MidbattleHandlers.add(:midbattle_triggers, "useItem",
   proc { |battle, idxBattler, idxTarget, params|
-    next if battle.decision > 0
+    next if battle.decided?
     item = (params.is_a?(Array)) ? params.sample : params
     next if !item || !GameData::Item.exists?(item) 
     battler = battle.battlers[idxBattler]
@@ -499,7 +499,7 @@ MidbattleHandlers.add(:midbattle_triggers, "useItem",
 MidbattleHandlers.add(:midbattle_triggers, "useMove",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0
+    next if !battler || battler.fainted? || battle.decided?
     next if battler.movedThisRound? ||
             battler.effects[PBEffects::ChoiceBand]    ||
             battler.effects[PBEffects::Instructed]    ||
@@ -593,7 +593,7 @@ MidbattleHandlers.add(:midbattle_triggers, "useMove",
 MidbattleHandlers.add(:midbattle_triggers, "switchOut",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battler.wild? || battle.decision > 0
+    next if !battler || battler.fainted? || battler.wild? || battle.decided?
     next if !battle.pbCanSwitchOut?(idxBattler)
     if params.is_a?(Array)
       switch, msg = params[0], params[1]
@@ -657,7 +657,7 @@ MidbattleHandlers.add(:midbattle_triggers, "switchOut",
 MidbattleHandlers.add(:midbattle_triggers, "megaEvolve",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !params || !battler || battler.fainted? || battle.decision > 0
+    next if !params || !battler || battler.fainted? || battle.decided?
     ch = battle.choices[battler.index]
     next if ch[0] != :UseMove
     oldMode = battle.wildBattleMode
@@ -726,7 +726,7 @@ MidbattleHandlers.add(:midbattle_triggers, "disableControl",
 #-------------------------------------------------------------------------------
 MidbattleHandlers.add(:midbattle_triggers, "endBattle",
   proc { |battle, idxBattler, idxTarget, params|
-    next if battle.decision > 0
+    next if battle.decided?
     params = 1 if params == 4
     PBDebug.log("     'endBattle': forcing the battle to end prematurely")
     battle.scene.pbForceEndSpeech
@@ -740,7 +740,7 @@ MidbattleHandlers.add(:midbattle_triggers, "endBattle",
 MidbattleHandlers.add(:midbattle_triggers, "wildFlee",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if battle.decision > 0 || !battler || !battler.wild?
+    next if battle.decided? || !battler || !battler.wild?
     PBDebug.log("     'wildFlee': forcing the wild #{battler.name} (#{battler.index}) to flee")
     battle.scene.pbForceEndSpeech
     battler.wild_flee(params) 
@@ -760,7 +760,7 @@ MidbattleHandlers.add(:midbattle_triggers, "wildFlee",
 MidbattleHandlers.add(:midbattle_triggers, "battlerName",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0
+    next if !battler || battler.fainted? || battle.decided?
     if !nil_or_empty?(params)
       PBDebug.log("     'battlerName': changing #{battler.name} (#{battler.index})'s name to #{params}")
       battler.pokemon.name = params
@@ -776,7 +776,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerName",
 MidbattleHandlers.add(:midbattle_triggers, "battlerHP",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0
+    next if !battler || battler.fainted? || battle.decided?
     battle.scene.pbForceEndSpeech
     if params.is_a?(Array)
       amt, msg = params[0], params[1]
@@ -815,7 +815,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerHP",
 MidbattleHandlers.add(:midbattle_triggers, "battlerHPCap",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0
+    next if !battler || battler.fainted? || battle.decided?
     battler.damageThreshold = params
     PBDebug.log("     'battlerHPCap': setting maximum damage threshold for #{battler.name} (#{battler.index})")
   }
@@ -827,7 +827,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerHPCap",
 MidbattleHandlers.add(:midbattle_triggers, "battlerStatus",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0
+    next if !battler || battler.fainted? || battle.decided?
     battle.scene.pbForceEndSpeech
     if params.is_a?(Array)
       status, msg = params[0], params[1]
@@ -880,7 +880,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerStatus",
 MidbattleHandlers.add(:midbattle_triggers, "battlerType",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0 || !battler.canChangeType?
+    next if !battler || battler.fainted? || battle.decided? || !battler.canChangeType?
     changed_types = false
     old_types = battler.pbTypes
     params = params[0] if params.is_a?(Array) && params.length == 1
@@ -925,7 +925,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerType",
 MidbattleHandlers.add(:midbattle_triggers, "battlerForm",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0 || !battler.getActiveState.nil?
+    next if !battler || battler.fainted? || battle.decided? || !battler.getActiveState.nil?
     next if battler.effects[PBEffects::SkyDrop] >= 0 || battler.semiInvulnerable?
     if params.is_a?(Array)
       form, msg = params[0], params[1]
@@ -970,7 +970,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerForm",
 MidbattleHandlers.add(:midbattle_triggers, "battlerSpecies",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0 || !battler.getActiveState.nil?
+    next if !battler || battler.fainted? || battle.decided? || !battler.getActiveState.nil?
     next if battler.effects[PBEffects::SkyDrop] >= 0 || battler.semiInvulnerable?
     if params.is_a?(Array)
       species, msg = params[0], params[1]
@@ -1015,7 +1015,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerSpecies",
 MidbattleHandlers.add(:midbattle_triggers, "battlerEvolve",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0
+    next if !battler || battler.fainted? || battle.decided?
     if params.is_a?(Array)
       species, form = params[0], params[1]
     else
@@ -1045,7 +1045,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerEvolve",
 MidbattleHandlers.add(:midbattle_triggers, "battlerAbility",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0
+    next if !battler || battler.fainted? || battle.decided?
     if params.is_a?(Array)
       abil, msg = params[0], params[1]
     else
@@ -1093,7 +1093,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerAbility",
 MidbattleHandlers.add(:midbattle_triggers, "battlerItem",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0
+    next if !battler || battler.fainted? || battle.decided?
     if params.is_a?(Array)
       item, msg = params[0], params[1]
     else
@@ -1140,7 +1140,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerItem",
 MidbattleHandlers.add(:midbattle_triggers, "battlerMoves",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0
+    next if !battler || battler.fainted? || battle.decided?
     case params
     when Array
       Pokemon::MAX_MOVES.times do |i|
@@ -1186,7 +1186,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerMoves",
 MidbattleHandlers.add(:midbattle_triggers, "battlerStats",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0
+    next if !battler || battler.fainted? || battle.decided?
     battle.scene.pbForceEndSpeech
     case params
     when :Reset
@@ -1264,7 +1264,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerStats",
 MidbattleHandlers.add(:midbattle_triggers, "battlerEffects",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battler.fainted? || battle.decision > 0
+    next if !battler || battler.fainted? || battle.decided?
     effects = (params[0].is_a?(Array)) ? params : [params]
     effects.each do |array|
       id, value, msg = *array
@@ -1368,7 +1368,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerEffects",
 MidbattleHandlers.add(:midbattle_triggers, "battlerWish",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battle.decision > 0
+    next if !battler || battle.decided?
     next if battle.positions[idxBattler].effects[PBEffects::Wish] > 0
     if params.is_a?(Array)
       count, amount = *params
@@ -1400,7 +1400,7 @@ MidbattleHandlers.add(:midbattle_triggers, "battlerWish",
 MidbattleHandlers.add(:midbattle_triggers, "teamEffects",
   proc { |battle, idxBattler, idxTarget, params|
     battler = battle.battlers[idxBattler]
-    next if !battler || battle.decision > 0
+    next if !battler || battle.decided?
     index = battler.idxOwnSide
     if battler.index.odd?
       index = (battler.idxOwnSide == 0) ? 1 : 0
@@ -1456,7 +1456,7 @@ MidbattleHandlers.add(:midbattle_triggers, "teamEffects",
 #-------------------------------------------------------------------------------
 MidbattleHandlers.add(:midbattle_triggers, "fieldEffects",
   proc { |battle, idxBattler, idxTarget, params|
-    next if battle.decision > 0
+    next if battle.decided?
     battler = battle.battlers[idxBattler]
     effects = (params[0].is_a?(Array)) ? params : [params]
     effects.each do |array|
@@ -1537,7 +1537,7 @@ MidbattleHandlers.add(:midbattle_triggers, "fieldEffects",
 #-------------------------------------------------------------------------------
 MidbattleHandlers.add(:midbattle_triggers, "changeWeather",
   proc { |battle, idxBattler, idxTarget, params|
-    next if battle.decision > 0
+    next if battle.decided?
     next if [:HarshSun, :HeavyRain, :StrongWinds].include?(battle.field.weather)
     battler = battle.battlers[idxBattler]
     battle.scene.pbForceEndSpeech
@@ -1588,7 +1588,7 @@ MidbattleHandlers.add(:midbattle_triggers, "changeWeather",
 #-------------------------------------------------------------------------------
 MidbattleHandlers.add(:midbattle_triggers, "changeTerrain",
   proc { |battle, idxBattler, idxTarget, params|
-    next if battle.decision > 0
+    next if battle.decided?
     battler = battle.battlers[idxBattler]
     battle.scene.pbForceEndSpeech
     case params
@@ -1626,7 +1626,7 @@ MidbattleHandlers.add(:midbattle_triggers, "changeTerrain",
 #-------------------------------------------------------------------------------
 MidbattleHandlers.add(:midbattle_triggers, "changeEnvironment",
   proc { |battle, idxBattler, idxTarget, params|
-    next if battle.decision > 0
+    next if battle.decided?
     battler = battle.battlers[idxBattler]
     case params
     when :Random
@@ -1653,7 +1653,7 @@ MidbattleHandlers.add(:midbattle_triggers, "changeEnvironment",
 #-------------------------------------------------------------------------------
 MidbattleHandlers.add(:midbattle_triggers, "changeBackdrop",
   proc { |battle, idxBattler, idxTarget, params|
-    next if battle.decision > 0
+    next if battle.decided?
     if params.is_a?(Array)
       backdrop, base = params[0], params[1]
     else
@@ -1695,7 +1695,7 @@ MidbattleHandlers.add(:midbattle_triggers, "changeBackdrop",
 #-------------------------------------------------------------------------------
 MidbattleHandlers.add(:midbattle_triggers, "changeDataboxes",
   proc { |battle, idxBattler, idxTarget, params|
-    next if battle.decision > 0 || battle.raidBattle?
+    next if battle.decided? || battle.raidBattle?
     old_style = battle.databoxStyle
     old_style = old_style.first if old_style.is_a?(Array)
     style = (params.is_a?(Array)) ? params.first : params

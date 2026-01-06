@@ -309,7 +309,7 @@ class Battle::Battler
   def canRaidCapture?
     return false if !@battle.raidStyleCapture # Only if raid style capture enabled.
     return false if @battle.trainerBattle?    # Only in wild battles.
-    return false if @battle.decision > 0      # Only if battle outcome hasn't already been decided.
+    return false if @battle.decided?          # Only if battle outcome hasn't already been decided.
     return false if @battle.pbAllFainted?     # Only if the player still has usable Pokemon.
     return false if !self.wild?               # Only if battler is a wild Pokemon.
     return false if self.hp > 0               # Only if battler's HP has reached zero.
@@ -329,7 +329,7 @@ class Battle::Battler
       @battle.pbEndPrimordialWeather
       @battle.pbRemoveFromParty(@index, @pokemonIndex)
     else
-      @battle.decision = (self.isRaidBoss?) ? 1 : 3
+      @battle.decision = (self.isRaidBoss?) ? Battle::Outcome::WIN : Battle::Outcome::FLEE
     end
   end
   
